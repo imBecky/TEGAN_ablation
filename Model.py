@@ -12,17 +12,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 def make_generator_model():
     model = tf.keras.Sequential()
     model.add(layers.InputLayer(input_shape=(72, 1)))
-    model.add(ResNet.ResBlock_up_top(72))
-    model.add(tf.keras.layers.BatchNormalization())
-    model.add(tf.keras.layers.Conv1D(
-        filters=72,
-        kernel_size=3,
-        padding='same',
-        use_bias=False
-    ))
-    model.add(tf.keras.layers.Reshape(target_shape=(72, 144)))
-    model.add(tf.keras.layers.Dropout(0.3))
-    model.add(tf.keras.layers.Dense(72, use_bias=True))
+    model.add(ResNet.ResBlock_up_top(1))
+    model.add(tf.keras.layers.Reshape(target_shape=(72, 2)))
+    model.add(tf.keras.layers.Dropout(0.7))
     model.add(tf.keras.layers.Dense(1, use_bias=False))
     model.build()
     return model
@@ -31,9 +23,8 @@ def make_generator_model():
 def make_discriminator_model():
     model = tf.keras.Sequential()
     model.add(layers.InputLayer(input_shape=(72, 1)))
-    model.add(ResNet.ResBlock_Down(72))
-    model.add(layers.BatchNormalization())
-    model.add(layers.Dropout(0.3))
+    model.add(ResNet.ResBlock_Down(1))
+    model.add(layers.Dropout(0.7))
     model.add(layers.Flatten())
     model.add(ResNet.Res_Dense(1))
     return model
@@ -42,8 +33,8 @@ def make_discriminator_model():
 def make_discriminator_domain_model():
     model = tf.keras.Sequential()
     model.add(tf.keras.layers.InputLayer(input_shape=(FEATURE_dim, 1)))
-    model.add(ResNet.ResBlock_Down(72))
-    model.add(layers.Dropout(0.3))
+    model.add(ResNet.ResBlock_Down(1))
+    model.add(layers.Dropout(0.7))
     model.add(layers.Flatten())
     model.add(ResNet.Res_Dense(1))
     return model
@@ -89,8 +80,7 @@ def make_encoder_model():
                             padding='same',
                             use_bias=False))
     model.add(layers.MaxPool1D())
-    model.add(ResNet.bottleneck_rev_s(36))
-    model.add(layers.Dropout(0.3))
+    model.add(layers.Dropout(0.5))
     model.add(layers.BatchNormalization())
     model.add(layers.Dense(1))
     return model

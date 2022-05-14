@@ -25,23 +25,23 @@ encoder_t = make_encoder_model()
 classifier = make_classifier_model()
 classifier_data = make_data_classifier_model()
 
-# train1(classifier_data, target_train_ds, EPOCHS)
+# train1(classifier_data, target_train_ds, target_test_ds, EPOCHS)
 # Validation_data(target_val_ds, classifier_data)
 
 # train2(generator_s, discriminator_t, classifier_data,
 #        source_train_ds, target_train_ds, EPOCHS)
 # Validation_data(target_val_ds, classifier_data)
-
+#
 # train3(generator_s, discriminator_t, generator_t, discriminator_s,
 #        classifier_data, source_train_ds, target_train_ds, EPOCHS)
 # Validation_data(target_val_ds, classifier_data)
-
+#
 # train4(encoder_t, classifier, target_train_ds, EPOCHS)
 # Validation_data(target_val_ds, classifier, encoder=encoder_t, flag=True)
-
+#
 train5(generator_s, discriminator_t,
        generator_t, discriminator_s,
        encoder_s, encoder_t,
        discriminator_domain, classifier,
-       source_train_ds, target_train_ds, EPOCHS)
+       source_train_ds, target_train_ds, target_test_ds, EPOCHS)
 Validation_data(target_val_ds, classifier, encoder=encoder_t, flag=True)
