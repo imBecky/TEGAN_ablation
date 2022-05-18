@@ -29,17 +29,14 @@ encoder_t = make_encoder_model()
 classifier = make_classifier_model()
 classifier_data = make_data_classifier_model()
 
-# train1(classifier_data, target_train_ds, target_test_ds, EPOCHS)
-# Validation_data(target_val_ds, classifier_data)
-
 # train2(generator_s, discriminator_t, classifier_data,
 #        source_train_ds, target_train_ds, EPOCHS)
 # Validation_data(target_val_ds, classifier_data)
 #
-# train3(generator_s, discriminator_t, generator_t, discriminator_s,
-#        classifier_data, source_train_ds, target_train_ds, EPOCHS)
-# Validation_data(target_val_ds, classifier_data)
-#
+train3(generator_s, discriminator_t, generator_t, discriminator_s,
+       classifier_data, source_train_ds, target_train_ds, EPOCHS)
+Validation_data(target_val_ds, classifier_data)
+# #
 # train4(encoder_t, classifier, target_train_ds, EPOCHS)
 # Validation_data(target_val_ds, classifier, encoder=encoder_t, flag=True)
 #
@@ -50,6 +47,9 @@ classifier_data = make_data_classifier_model()
 #        source_train_ds, target_train_ds, target_test_ds, EPOCHS)
 # Validation_data(target_val_ds, classifier, encoder=encoder_t, flag=True)
 
-train2(generator_DC, discriminator_DC, classifier_data,
-       source_train_ds, target_train_ds, EPOCHS)
-Validation_data(target_val_ds, classifier_data)
+# train2(generator_DC, discriminator_DC, classifier_data,
+#        source_train_ds, target_train_ds, EPOCHS)
+# Validation_data(target_val_ds, classifier_data)
+
+
+plot_result(generator_s, source_train_ds, target_val_ds, 1)

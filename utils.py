@@ -54,6 +54,27 @@ def gen_dataset_from_dict(file_dict, Val=False):
         return train_ds, test_ds
 
 
+def plot_result(generator, source_ds, target_ds, procedure):
+    source = source_ds.as_numpy_iterator().next()
+    x_s, y_s = source['data'], source['label'][0]
+    x_t, y_t = [], []
+    target = target_ds.as_numpy_iterator().next()
+    for i in range(100):
+        y_t = target['label'][i]
+        if (y_s == y_t).all():
+            x_t = target['data'][i]
+            break
+    x_fake = generator(x_s, training=False)[0]
+    x_s = x_s[0]
+    plt.subplot(1, 1, 1)
+    plt.plot(np.arange(BANDS), x_s, label='source data')
+    plt.plot(np.arange(BANDS), x_t, label='target_data')
+    plt.plot(np.arange(BANDS), x_fake, label='generated_data')
+    plt.legend(loc='lower right')
+    plt.title(f'Generate effect on exp{procedure}')
+    plt.show()
+
+
 def generate_and_save_Images(model, epoch, test_input):
     """Notice `training` is set to False.
        This is so all layers run in inference mode (batch norm)."""
@@ -125,17 +146,6 @@ def plot_acc_loss(acc, gen_loss, disc_loss, cls_loss,
     return acc, gen_loss, disc_loss, cls_loss
 
 
-def cal_AA(y, prediction):
-    prediction = normalized(prediction.numpy())
-    TP = tf.keras.metrics.TruePositives()
-    FN = tf.keras.metrics.FalseNegatives()
-    TP.update_state(y, prediction)
-    FN.update_state(y, prediction)
-    recall = TP.result().numpy() / (TP.result().numpy() + FN.result().numpy())
-    average_accuracy = recall / CLASSES_NUM
-    return average_accuracy
-
-
 def Validation(target_val_ds, encoder_t, classifier):
     val_loss = tf.keras.metrics.Mean('val_loss', dtype=tf.float32)
     val_accuracy = tf.keras.metrics.CategoricalAccuracy('val_accuracy')
@@ -164,21 +174,22 @@ def Validation(target_val_ds, encoder_t, classifier):
 def Validation_data(target_val_ds, classifier, encoder=None, flag=False):
     start = time.time()
     loss = tf.keras.metrics.Mean('val_loss', dtype=tf.float32)
-    oa = tf.keras.metrics.CategoricalAccuracy('Overall accuracy')
+    oa = tf.keras.metrics.BinaryAccuracy('Overall_accuracy', dtype=tf.float32)
     aa = tf.keras.metrics.CategoricalAccuracy('Average_accuracy')
     kappa = tfa.metrics.CohenKappa(num_classes=CLASSES_NUM, sparse_labels=False)
+    m = tf.keras.metrics.Accuracy()
     for val_batch in target_val_ds.as_numpy_iterator():
         x, y = get_data_from_batch(val_batch)
         if flag:
             x = encoder(x, training=False)
         prediction = classifier(x, training=False)
         loss(cat_cross_entropy(y, prediction))
-        oa(y, prediction)
+        oa.update_state(y, prediction)
         aa(y, prediction)
         kappa.update_state(y, prediction)
     template = 'Loss: {:2f}, OA: {:.2f}%, AA:{:.2f}%, kappa:{:.2f}'
     print(template.format(loss.result(),
-                          oa.result() * 100,
+                          oa.result().numpy() * 100,
                           aa.result() * 100,
                           kappa.result().numpy() * 100))
     print('Time for validation is {:.2f} sec'.format(time.time()-start))
