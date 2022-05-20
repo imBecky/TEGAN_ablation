@@ -16,7 +16,7 @@ def test_step1(classifier_data, target_batch):
     test_acc(Yt, prediction)
 
 
-def test_step4(encoder_t, classifier, target_batch):
+def test_step2(encoder_t, classifier, target_batch):
     Xt, Yt = get_data_from_batch(target_batch)
     feature_t = encoder_t(Xt, training=False)
     prediction = classifier(feature_t, training=False)

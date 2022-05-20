@@ -100,7 +100,7 @@ def train_step_2_2(generator_s, classifier_data,
 
 
 def train2(generator_s, discriminator_t, classifier_data,
-           source_ds, target_ds, epochs):
+           source_ds, target_ds, target_test_ds, epochs):
     best = 0
     patience = PATIENCE
     wait = 0
@@ -122,6 +122,16 @@ def train2(generator_s, discriminator_t, classifier_data,
             tf.summary.scalar('oa', oa.result(), step=epoch)
             tf.summary.scalar('aa', aa.result(), step=epoch)
             tf.summary.scalar('kappa', kappa.result(), step=epoch)
+        for target_batch in target_test_ds.as_numpy_iterator():
+            test_step1(classifier_data, target_batch)
+        now = test_acc.result().numpy()
+        if epoch > int(epochs / 2):
+            wait += 1
+            if now > best:
+                best = now
+                wait = 0
+            if wait >= patience:
+                break
         print(f'2:Time for epoch {epoch + 1} is {time.time() - start} sec')
 
 
@@ -145,8 +155,8 @@ def train_step3_1(generator_s, discriminator_t,
         real_output_s = discriminator_s(x_s, training=True)
         fake_output_s = discriminator_s(x_s_fake, training=True)
 
-        x_s_cyc = generator_t(x_t_fake, training=True)
-        x_t_cyc = generator_s(x_s_fake, training=True)
+        x_s_cyc = generator_t(x_t_fake, training=True) * 0.5
+        x_t_cyc = generator_s(x_s_fake, training=True) * 0.5
         cycle_consistence_loss = cat_cross_entropy(x_s, x_s_cyc) + cat_cross_entropy(x_t, x_t_cyc)
 
         disc_t_loss = discriminator_loss(real_output_t, fake_output_t)
@@ -169,11 +179,59 @@ def train_step3_1(generator_s, discriminator_t,
         discriminator_s_optimizer.apply_gradients(zip(disc_s_gradient, discriminator_t.trainable_variables))
 
 
+@tf.function
+def train_step3_2(generator_s, discriminator_t,
+                  generator_t, discriminator_s,
+                  source_batch, target_batch):
+    x_s, y_s = get_data_from_batch(source_batch)
+    x_t, y_t = get_data_from_batch(target_batch)
+    with tf.GradientTape() as tape_gs, tf.GradientTape() as tape_dt, \
+            tf.GradientTape() as tape_gt, tf.GradientTape() as tape_ds:
+        if x_s.shape[0] > x_t.shape[0]:
+            x_s = x_t[:x_t.shape[0]]
+        elif x_s.shape[0] < x_t.shape[0]:
+            x_t = x_s[:x_s.shape[0]]
+        x_t_fake = generator_s(x_s, training=True)
+        real_output_t = discriminator_t(x_t, training=True)
+        fake_output_t = discriminator_t(x_t_fake, training=True)
+        x_s_fake = generator_t(x_t, training=True)
+        real_output_s = discriminator_s(x_s, training=True)
+        fake_output_s = discriminator_s(x_s_fake, training=True)
+
+        disc_t_loss = discriminator_loss(real_output_t, fake_output_t)
+        gen_s_loss = generator_loss(fake_output_t)
+
+        disc_s_loss = discriminator_loss(real_output_s, fake_output_s)
+        gen_t_loss = generator_loss(fake_output_s)
+
+        gen_s_gradient = tape_gs.gradient(gen_s_loss, generator_s.trainable_variables)
+        disc_t_gradient = tape_dt.gradient(disc_t_loss, discriminator_t.trainable_variables)
+
+        gen_t_gradient = tape_gt.gradient(gen_t_loss, generator_t.trainable_variables)
+        disc_s_gradient = tape_ds.gradient(disc_s_loss, discriminator_s.trainable_variables)
+
+        generator_s_optimizer.apply_gradients(zip(gen_s_gradient, generator_s.trainable_variables))
+        discriminator_t_optimizer.apply_gradients(zip(disc_t_gradient, discriminator_t.trainable_variables))
+        generator_t_optimizer.apply_gradients(zip(gen_t_gradient, generator_s.trainable_variables))
+        discriminator_s_optimizer.apply_gradients(zip(disc_s_gradient, discriminator_t.trainable_variables))
+
+
 def train3(generator_s, discriminator_t,
            generator_t, discriminator_s,
            classifier_data,
-           source_ds, target_ds, epochs):
-    for epoch in range(600):
+           source_ds, target_ds, target_test_ds, epochs):
+    best = 0
+    patience = PATIENCE
+    wait = 0
+    for epoch in range(epochs):
+        start = time.time()
+        for source_batch in source_ds.as_numpy_iterator():
+            for target_batch in target_ds.as_numpy_iterator():
+                train_step3_2(generator_s, discriminator_t,
+                              generator_t, discriminator_s,
+                              source_batch, target_batch)
+        print(f'3:Time for epoch {epoch + 1} is {time.time() - start} sec')
+    for epoch in range(epochs):
         start = time.time()
         for source_batch in source_ds.as_numpy_iterator():
             for target_batch in target_ds.as_numpy_iterator():
@@ -192,6 +250,16 @@ def train3(generator_s, discriminator_t,
             tf.summary.scalar('oa', oa.result(), step=epoch)
             tf.summary.scalar('aa', aa.result(), step=epoch)
             tf.summary.scalar('kappa', kappa.result(), step=epoch)
+        for target_batch in target_test_ds.as_numpy_iterator():
+            test_step1(classifier_data, target_batch)
+        now = test_acc.result().numpy()
+        if epoch > int(epochs/2):
+            wait += 1
+            if now > best:
+                best = now
+                wait = 0
+            if wait >= patience:
+                break
         print(f'3:Time for epoch {epoch + 1} is {time.time() - start} sec')
 
 
@@ -217,7 +285,10 @@ def train_step_4(encoder, classifier,
 
 
 def train4(encoder, classifier,
-           target_ds, epochs):
+           target_ds, target_test_ds, epochs):
+    best = 0
+    patience = PATIENCE
+    wait = 0
     for epoch in range(epochs):
         start = time.time()
         for target_batch in target_ds.as_numpy_iterator():
@@ -227,6 +298,16 @@ def train4(encoder, classifier,
             tf.summary.scalar('oa', oa.result(), step=epoch)
             tf.summary.scalar('aa', aa.result(), step=epoch)
             tf.summary.scalar('kappa', kappa.result(), step=epoch)
+        for target_batch in target_test_ds.as_numpy_iterator():
+            test_step2(encoder, classifier, target_batch)
+        now = test_acc.result().numpy()
+        if epoch > int(epochs/2):
+            wait += 1
+            if now > best:
+                best = now
+                wait = 0
+            if wait >= patience:
+                break
         print(f'4:Time for epoch {epoch + 1} is {time.time() - start} sec')
 
 
@@ -320,7 +401,7 @@ def train5(generator_s, discriminator_t,
         patience = PATIENCE
         if epoch % 5 == 0:
             for target_batch in target_test_ds.as_numpy_iterator():
-                test_step4(encoder_t, classifier, target_batch)
+                test_step2(encoder_t, classifier, target_batch)
             template = 'Epoch {}: Test loss={:.2f}, ' \
                        ' test_accuracy={:.2f}%'
             print(template.format(epoch + 1, test_loss.result(),

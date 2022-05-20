@@ -75,7 +75,7 @@ def make_encoder_model():
     model = tf.keras.Sequential()
     model.add(layers.InputLayer(input_shape=(72, 1)))
     model.add(layers.Conv1D(filters=72,
-                            kernel_size=7,
+                            kernel_size=3,
                             strides=1,
                             padding='same',
                             use_bias=False))

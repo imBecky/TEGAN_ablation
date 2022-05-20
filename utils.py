@@ -72,6 +72,7 @@ def plot_result(generator, source_ds, target_ds, procedure):
     plt.plot(np.arange(BANDS), x_fake, label='generated_data')
     plt.legend(loc='lower right')
     plt.title(f'Generate effect on exp{procedure}')
+    plt.savefig('./pics/image_at_exp_{:04d}.png'.format(procedure))
     plt.show()
 
 
