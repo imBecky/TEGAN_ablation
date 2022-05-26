@@ -55,6 +55,9 @@ def gen_dataset_from_dict(file_dict, Val=False):
 
 
 def plot_result(generator, source_ds, target_ds, procedure):
+    oa = tf.keras.metrics.BinaryAccuracy('Overall_accuracy', dtype=tf.float32)
+    aa = tf.keras.metrics.CategoricalAccuracy('Average_accuracy')
+    kappa = tfa.metrics.CohenKappa(num_classes=CLASSES_NUM, sparse_labels=False)
     source = source_ds.as_numpy_iterator().next()
     x_s, y_s = source['data'], source['label'][0]
     x_t, y_t = [], []
@@ -145,31 +148,6 @@ def plot_acc_loss(acc, gen_loss, disc_loss, cls_loss,
     plt.title('Training and Validation Loss')
     plt.show()
     return acc, gen_loss, disc_loss, cls_loss
-
-
-def Validation(target_val_ds, encoder_t, classifier):
-    val_loss = tf.keras.metrics.Mean('val_loss', dtype=tf.float32)
-    val_accuracy = tf.keras.metrics.CategoricalAccuracy('val_accuracy')
-    kappa = tfa.metrics.CohenKappa(num_classes=CLASSES_NUM, sparse_labels=False)
-    recall = tf.metrics.Recall(name='recall')
-    AA = 0
-    for val_batch in target_val_ds.as_numpy_iterator():
-        x, y = get_data_from_batch(val_batch)
-        x_feature = encoder_t(x, training=False)
-        prediction = classifier(x_feature, training=False)
-        val_loss(cat_cross_entropy(y, prediction))
-        val_accuracy(y, prediction)
-        kappa.update_state(y, prediction)
-        try:
-            recall.update_state(y, prediction)
-            AA = recall.result().numpy() / CLASSES_NUM
-        except InvalidArgumentError:
-            print('预测值不在[0, 1]之间')
-    template = 'Loss: {:2f}, OA: {:.2f}%, AA:{:.2f} kappa:{:.2f}'
-    print(template.format(val_loss.result(),
-                          val_accuracy.result() * 100,
-                          AA * 100,
-                          kappa.result().numpy() * 100))
 
 
 def Validation_data(target_val_ds, classifier, encoder=None, flag=False):

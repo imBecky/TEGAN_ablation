@@ -9,7 +9,7 @@ import tensorflow_addons as tfa
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-TRAIN_FLAG = 3
+TRAIN_FLAG = 5
 
 NEW_DATA_PATH = './new data'
 """load data"""
@@ -44,6 +44,7 @@ elif TRAIN_FLAG == 3:
            classifier_data,
            source_train_ds, target_train_ds, target_test_ds, EPOCHS)
     Validation_data(target_val_ds, classifier_data)
+    TRAIN_FLAG = 5
 elif TRAIN_FLAG == 4:
     train4(encoder_t, classifier, target_train_ds, target_train_ds, EPOCHS)
     Validation_data(target_val_ds, classifier, encoder=encoder_t, flag=True)
